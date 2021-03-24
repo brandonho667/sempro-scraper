@@ -71,6 +71,9 @@ class ScienceDirect(BaseScraper):
     def get_doi(self,soup):
         return soup.find("meta", {"name":"citation_doi"})['content'] or "NONE"
 
+    def get_figures(self, soup):
+        pass
+
     def get_title(self,soup):
         return soup.find("meta", {"name": "citation_title"})['content']
 

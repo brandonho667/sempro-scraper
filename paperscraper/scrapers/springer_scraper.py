@@ -26,6 +26,9 @@ class Springer(BaseScraper):
     def get_doi(self, soup):
         return soup.find('meta', {"name": "citation_doi"})['content']
 
+    def get_figures(self, soup):
+        pass
+
     def get_keywords(self, soup):
         keywords = soup.find('div', {"class": "KeywordGroup"}).findAll('span', {"class": "Keyword"})
         return [keyword.getText() for keyword in keywords]

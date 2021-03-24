@@ -6,18 +6,24 @@ from paperscraper.scrapers.base.base_scraper import BaseScraper
 
 
 class ACS(BaseScraper):
-
+    
     def __init__(self, driver):
         self.driver = driver
         self.website = ["pubs.acs.org"]
+        self.metadata = {}
+        
+    def init_metadata(self, soup):
+        self.metadata = eval(soup.find("input", {"name": "meta-data"}).get("value"))
+
 
     def get_authors(self, soup):
-        author_links = soup.find("div", id="articleMeta").findAll("a", id="authors")
-        authors = {}
+        authors = self.metadata["authors"]
+        print(authors)
+        # authors = {}
 
-        for i in range(len(author_links)):
-            authors['a' + str(i + 1)] = {'last_name': author_links[i].contents[0].split(" ")[-1],
-                                         'first_name': author_links[i].contents[0].split(" ")[0]}
+        # for i in range(len(author_links)):
+        #     authors['a' + str(i + 1)] = {'last_name': author_links[i].contents[0].split(" ")[-1],
+        #                                  'first_name': author_links[i].contents[0].split(" ")[0]}
 
         return authors
 
@@ -39,7 +45,7 @@ class ACS(BaseScraper):
         # Take out the references, tables, and figures
         [s.extract() for s in soup.find_all(is_reference)]
         [s.extract() for s in soup.find_all("table")]
-        [s.extract() for s in soup.find_all({'class': "figure"})]
+        [s.extract() for s in soup.find_all("figure")]
 
         article_sections = soup.find_all("div", class_='NLM_sec')
 
@@ -61,9 +67,22 @@ class ACS(BaseScraper):
         return body
 
     def get_doi(self, soup):
-        doi_block = soup.find("div", id="doi")
-        doi_block.next_element.extract()
-        return doi_block.getText()
+        return self.metadata["identifiers"]["doi"]
+
+    def get_figures(self, soup):
+
+        figures = []
+        for s in soup.find_all("figure", {"class": "article__inlineFigure"}):
+            fig = {}
+            caption = s.find("figcaption")
+            link = s.find("a", {"title": "High Resolution Image"})["href"]
+            if(caption):
+                fig["link"] = link
+                fig["caption"] = caption.get_text()
+                if (fig not in figures):
+                    figures.append(fig)
+
+        return figures
 
     """ Used to get the keywords from the article
     
@@ -75,11 +94,7 @@ class ACS(BaseScraper):
 
     def get_pdf_url(self, soup):
         return "https://pubs.acs.org" + \
-               soup.find(
-                   "ul", {"class": "publicationFormatList icons"}
-               ).find(
-                   "li", {'class': 'pdf-low-res'}
-               ).find("a")['href']
+               soup.find("a", {"title": "PDF"})['href']
 
     def get_title(self, soup):
         return soup.find("span", {"class": "hlFld-Title"}).getText()

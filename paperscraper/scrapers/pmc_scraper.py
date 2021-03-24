@@ -34,6 +34,9 @@ class PMC(BaseScraper):
 
     def get_doi(self, soup):
         return soup.find("span", {"class": "doi"}).find("a").getText()
+    
+    def get_figures(self, soup):
+        pass
 
     def get_keywords(self, soup):
         keywords = soup.find("span", {"class": "kwd-text"})

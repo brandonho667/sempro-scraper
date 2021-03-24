@@ -37,8 +37,8 @@ class PaperScraper():
         options = webdriver.ChromeOptions()
         options.add_argument('headless')
 
-        webdriver_path = pkg_resources.resource_filename('paperscraper', 'webdrivers/chromedriver')
-
+        webdriver_path = pkg_resources.resource_filename('paperscraper', 'webdrivers/chromedriver.exe')
+       
         if ('webdriver_path' is not None):
             self.webdriver_path = webdriver_path
 

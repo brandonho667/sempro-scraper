@@ -83,6 +83,8 @@ class RSC(BaseScraper):
     def get_doi(self, soup):
         return soup.find('meta', {'name': 'citation_doi'})['content']
 
+    def get_figures(self, soup):
+        pass
 
     """ Used to get the keywords from the article
 

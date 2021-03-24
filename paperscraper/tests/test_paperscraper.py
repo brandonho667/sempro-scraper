@@ -1,7 +1,8 @@
 from unittest import TestCase
+import unittest
 from pprint import pprint
 
-from .. import PaperScraper
+from paperscraper import PaperScraper
 from selenium import webdriver
 from collections import OrderedDict
 
@@ -33,13 +34,16 @@ class TestPaperScraper(TestCase):
 
     def test_valid_extraction(self):
         scraper = self.scraper
-        url = "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3418173/"
+        url = "https://pubs.acs.org/doi/10.1021/acsnano.5b03918/"
 
         if scraper.is_scrapable(url):
-            pprint(dict(scraper.extract_from_url("https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3418173/")))
+            pprint(dict(scraper.extract_from_url("https://pubs.acs.org/doi/10.1021/acsnano.5b03918/")))
             self.assertIsInstance(scraper.extract_from_url(url), OrderedDict)
 
     def test_invalid_extraction(self):
         scraper = self.scraper
         self.assertIsNone(scraper.extract_from_url("https://www.google.com"))
+
+if __name__ == '__main__':
+    unittest.main()
 
