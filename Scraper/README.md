@@ -1,3 +1,7 @@
+#Current Progress
+
+I have the ACS scraper done (just run the test_acs.py under the test folder on any link). Gets metadata and figure links into output json.
+
 
 PaperScraper
 ============
