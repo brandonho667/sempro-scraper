@@ -15,10 +15,9 @@ class ACS(BaseScraper):
     def init_metadata(self, soup):
         self.metadata = eval(soup.find("input", {"name": "meta-data"}).get("value"))
 
-
     def get_authors(self, soup):
         authors = self.metadata["authors"]
-        print(authors)
+        # print(authors)
         # authors = {}
 
         # for i in range(len(author_links)):
@@ -75,11 +74,11 @@ class ACS(BaseScraper):
         for s in soup.find_all("figure", {"class": "article__inlineFigure"}):
             fig = {}
             caption = s.find("figcaption")
-            link = s.find("a", {"title": "High Resolution Image"})["href"]
-            if(caption):
-                fig["link"] = link
+            image = s.find("a", {"title": "High Resolution Image"})
+            if caption and image:
+                fig["link"] = image["href"]
                 fig["caption"] = caption.get_text()
-                if (fig not in figures):
+                if fig not in figures:
                     figures.append(fig)
 
         return figures

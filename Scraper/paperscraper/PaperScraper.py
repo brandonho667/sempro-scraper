@@ -66,7 +66,7 @@ class PaperScraper():
         """
 
         for website_scraper in self.__import_all_scrapers():
-            if (website_scraper.is_correct_url(url)):
+            if website_scraper.is_correct_url(url):
                 return website_scraper
         return None
 
@@ -75,10 +75,10 @@ class PaperScraper():
            Return a JSON file containing a the full text and meta data of the paper located at 'url'.
            Returns None if 'url' cannot be scraped.
            """
-        for website_scraper in self.__import_all_scrapers():
-            if (website_scraper.is_correct_url(url)):
-                return website_scraper.extract(url)
-        return None
+        website_scraper = self.is_scrapable(url)
+        if website_scraper is not None:
+            return website_scraper.extract(url)
+        return None        
 
     def extract_from_pmid(self, pmid):
         """
