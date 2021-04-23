@@ -27,19 +27,34 @@ class JournalScraper:
             for s in soup.find_all("div", {"class": "issue-item_metadata"}):
                 links.append("https://pubs.acs.org" + s.find("a")["href"])
         return links
-        
+
+    def get_PMC_links(self, search, pages):
+        links = []
+        driver = self.driver
+        driver.get("https://www.ncbi.nlm.nih.gov/pmc/?term=%s" % search)
+        for p in range(0, pages):
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            for s in soup.find_all("div", {"class": "rprt"}):
+                links.append("https://www.ncbi.nlm.nih.gov" + s.find("a")["href"])
+            driver.find_element_by_xpath("//a[@title='Next page of results']").click()
+        return links    
+    
     def scrape_journals(self, search):
         paper_links = []
+        # paper_links = ["https://pubs.acs.org/doi/10.1021/acsbiomaterials.9b00705"]
         paper_links += self.get_ACS_links(search, 1)
+        # paper_links += self.get_PMC_links(search, 1)
         print(paper_links)
         # add more to get more links
         journal_data = {}
         for l in paper_links:
-            journal_data[l] = self.ps.extract_from_url(l)
+            link_data = self.ps.extract_from_url(l)
+            if len(link_data["figures"]) > 0 and len(link_data["body"]) > 0:
+                journal_data[l] = link_data
         return journal_data
 
 if __name__ == '__main__':
     js = JournalScraper()
     journal_data = js.scrape_journals("hydrogel sem")
-    with open('data.txt', 'w') as outfile:
+    with open('filter.txt', 'w') as outfile:
         json.dump(journal_data, outfile)

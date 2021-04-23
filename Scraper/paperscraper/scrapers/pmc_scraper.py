@@ -11,7 +11,7 @@ class PMC(BaseScraper):
 
     def get_authors(self, soup):
         author_links = soup.find("div", {"class": "contrib-group fm-author"}).findAll("a")
-        authors = {};
+        authors = {}
 
         for i in range(len(author_links)):
             authors['a' + str(i + 1)] = {'last_name': author_links[i].contents[0].split(" ")[-1],
@@ -36,7 +36,17 @@ class PMC(BaseScraper):
         return soup.find("span", {"class": "doi"}).find("a").getText()
     
     def get_figures(self, soup):
-        pass
+        figures = []
+        for s in soup.find_all("div", {"class": "fig iconblock whole_rhythm"}):
+            fig = {}
+            caption = s.find("div", {"class": "caption"})
+            image = s.find("img", {"class": "tileshop"})
+            if caption and image:
+                fig["link"] = image["src"]
+                fig["caption"] = caption.get_text()
+                if fig not in figures:
+                    figures.append(fig)
+        return figures
 
     def get_keywords(self, soup):
         keywords = soup.find("span", {"class": "kwd-text"})

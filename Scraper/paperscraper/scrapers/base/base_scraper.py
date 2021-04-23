@@ -27,16 +27,15 @@ class BaseScraper(ABC):
         time.sleep(1) # a delay to allow for the loading of paper and all javascript resources
         #TODO test for error in retrieving url
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        self.init_metadata(soup)
         return OrderedDict({
             'title':self.get_title(soup),
-            'authors': self.get_authors(soup),
-            'keywords': self.get_keywords(soup),
+            # 'authors': self.get_authors(soup),
+            # 'keywords': self.get_keywords(soup),
             'figures': self.get_figures(soup),
             # 'abstract': self.get_abstract(soup),
-            # 'body': self.get_body(soup),
+            'body': self.get_body(soup),
             'doi':self.get_doi(soup),
-            'pdf_url':self.get_pdf_url(soup)
+            # 'pdf_url':self.get_pdf_url(soup)
         })
 
     def is_correct_url(self,url):
