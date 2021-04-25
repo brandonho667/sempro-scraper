@@ -33,74 +33,41 @@ class ACS(BaseScraper):
         return soup.find("p", {'class': 'articleBody_abstractText'}).getText()
 
     def get_body(self, soup):
-        body = []
-
-        # def is_reference(tag):
-        #     prev_neg = False
-        #     if tag.previous_sibling:
-        #         prev_neg = "-" == tag.previous_sibling.string
-        #     is_ion = "+" in tag.getText()
-        #     is_anion = "-" in tag.getText() or prev_neg
-        #     return tag.name == "sup" and not (is_ion or is_anion)
-
-        # # Take out the references, tables, and figures
-        # [s.extract() for s in soup.find_all(is_reference)]
-        # [s.extract() for s in soup.find_all("table")]
-        # [s.extract() for s in soup.find_all("figure")]
-
-        # article_sections = soup.find_all("div", class_='NLM_sec')
-
-        # for section in article_sections:
-
-        #     sectionTitle = section.find('h2')
-
-        #     if sectionTitle:
-        #         sectionTitle = section.find('h2').get_text()
-        #     else:
-        #         sectionTitle = "NO SECTION HEADER PROVIDED"
-
-        #     paragraphs = section.find_all("div", class_="NLM_p")
-
-        #     for i, paragraph in enumerate(paragraphs):
-        #         paragraph_text = paragraph.get_text()
-        #         body.append({"text": paragraph_text, "meta": {"section": sectionTitle, "paragraph": i + 1}})
-
-
         def is_number(s):
             try:
                 float(s)
                 return True
             except ValueError:
                 return False
-        moduli = {}
-        c = 0
+        moduli = []
+        accept = ["~", "±", "to", "and", "Pa"]
         for section in soup.find("div", {"class":"article_content-left"}).find_all():
             if section.name == "div" and "class" in section.attrs.keys():
                 if "NLM_back" in section["class"]:
                     break
             sentences = tk.sent_tokenize(section.getText())
             for s in sentences:
+                if "Pa" not in s:
+                    continue
                 modulus = ""
                 start = -1
                 words = tk.word_tokenize(s)
                 for i in range(len(words)):
                     if words[i] == "modulus":
                         modulus = words[i-1] + " " + words[i]
-                        # print(words)
-                    elif modulus != "" and start < 0 and is_number(words[i][-1]):
-                        # print(words[i])
+                    if start < 0 and is_number(words[i][-1]):
                         start = i
-                    elif start > 0 and modulus != "" and "Pa" in words[i]:
-                        if modulus in moduli.keys():
-                            if ''.join(words[start:i+1]) in moduli.values():
-                                continue
-                            moduli[modulus+str(c)] = ''.join(words[start:i+1])
-                            c+=1
-                        else:
-                            moduli[modulus] = ''.join(words[start:i+1])
-                        print(modulus + ": " + ''.join(words[start:i+1]))
+                    elif start > 0 and not is_number(words[i][-1]) and not any([a in words[i] for a in accept]):
                         start = -1
-                        modulus = ""
+                    if start > 0 and modulus != "" and "Pa" in words[i]:
+                        measure = ''.join(words[start:i+1])
+                        mod_pair = {"modulus": modulus, "measurement": measure}
+                        if mod_pair in moduli:
+                            continue
+                        else:
+                            moduli.append(mod_pair)
+                        # print(modulus + ": " + ''.join(words[start:i+1]))
+                        start = -1
                     # if start > 0 and not (words[i].isdigit() or words[i] == "±"):
                     #     start = -1
                     #     modulus = ""
@@ -121,7 +88,7 @@ class ACS(BaseScraper):
             if caption and image:
                 fig["link"] = image["href"]
                 fig["caption"] = caption.get_text()
-                if "SEM" in fig["caption"] or "modulus" in fig["caption"]:
+                if fig not in figures and ("SEM" in fig["caption"] or "modulus" in fig["caption"]):
                     figures.append(fig)
 
         return figures

@@ -41,7 +41,7 @@ class JournalScraper:
     
     def scrape_journals(self, search):
         paper_links = []
-        # paper_links = ["https://pubs.acs.org/doi/10.1021/acsbiomaterials.9b00705"]
+        # paper_links = ["https://pubs.acs.org/doi/10.1021/acsabm.8b00710"]
         paper_links += self.get_ACS_links(search, 1)
         # paper_links += self.get_PMC_links(search, 1)
         print(paper_links)
@@ -56,5 +56,5 @@ class JournalScraper:
 if __name__ == '__main__':
     js = JournalScraper()
     journal_data = js.scrape_journals("hydrogel sem")
-    with open('filter.txt', 'w') as outfile:
+    with open('filtertest.txt', 'w') as outfile:
         json.dump(journal_data, outfile)
