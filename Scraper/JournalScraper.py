@@ -3,6 +3,8 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 import json
 import pkg_resources
+import csv
+import os
 
 class JournalScraper:
     def __init__(self, webdriver_path=None):
@@ -39,22 +41,47 @@ class JournalScraper:
             driver.find_element_by_xpath("//a[@title='Next page of results']").click()
         return links    
     
-    def scrape_journals(self, search):
+    def scrape_journals(self, search, filename):
         paper_links = []
-        # paper_links = ["https://pubs.acs.org/doi/10.1021/acsabm.8b00710"]
-        paper_links += self.get_ACS_links(search, 1)
+        # paper_links = ["https://pubs.acs.org/doi/10.1021/acsami.5b00184"]
+        paper_links += self.get_ACS_links(search, 2)
+        # paper_links += self.get_PMC_links(search, 5)
         # paper_links += self.get_PMC_links(search, 1)
         print(paper_links)
         # add more to get more links
         journal_data = {}
+        header = ['link', 'title', 'num', 'letter', 'hydrogel', 'sentence', 'image']
+        with open(filename, 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(header)
         for l in paper_links:
             link_data = self.ps.extract_from_url(l)
-            if len(link_data["figures"]) > 0 and len(link_data["body"]) > 0:
-                journal_data[l] = link_data
-        return journal_data
+            if 'figures' in link_data and link_data['figures']: #  or len(link_data["body"]) > 0
+                rows = []
+                for fig in link_data['figures']:
+                    for sub in fig['SEM']:
+                        rows.append([l, link_data['title'],fig['num'], sub['fig_num'], sub['gel'], sub['sentence'], fig['link']])
+                with open(filename, 'a+', newline='', encoding="utf-8") as csvfile:
+                    csvwriter = csv.writer(csvfile)
+                    for r in rows:
+                        csvwriter.writerow(r)
+            if 'support' in link_data and link_data['support']:
+                rows = []
+                for fig in link_data['support']:
+                    if 'SEM' in fig:
+                        for sub in fig['SEM']:
+                            rows.append([l, link_data['title'],fig['num'], sub['fig_num'], sub['gel'], sub['sentence'], fig['link']])
+                with open(filename, 'a+', newline='', encoding="utf-8") as csvfile:
+                    csvwriter = csv.writer(csvfile)
+                    for r in rows:
+                        csvwriter.writerow(r)
+                # journal_data[l] = link_data
+        # return journal_data
 
 if __name__ == '__main__':
     js = JournalScraper()
-    journal_data = js.scrape_journals("hydrogel sem")
-    with open('filtertest.txt', 'w') as outfile:
-        json.dump(journal_data, outfile)
+    if not os.path.exists("./sem"):
+        os.makedirs("./sem")
+    journal_data = js.scrape_journals("hydrogel sem", './test.csv')
+    # with open('./datasets/test_figures.json', 'w') as outfile:
+    #     json.dump(journal_data, outfile)

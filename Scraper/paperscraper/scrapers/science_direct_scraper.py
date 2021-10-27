@@ -92,3 +92,5 @@ class ScienceDirect(BaseScraper):
     def get_keywords(self, soup):
         return [x.contents[0] for x in soup.find("div", {"class": "keywords-section"}).findAll("span")] or "NONE"
 
+    def get_support(self, soup):
+        pass

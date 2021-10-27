@@ -65,3 +65,5 @@ fabric.properties
 *.eggs/
 venv/
 
+figure-separator/
+

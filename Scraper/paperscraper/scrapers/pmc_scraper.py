@@ -76,9 +76,9 @@ class PMC(BaseScraper):
             caption = s.find("div", {"class": "caption"})
             image = s.find("img", {"class": "tileshop"})
             if caption and image:
-                fig["link"] = image["src"]
-                fig["caption"] = caption.get_text()
-                if fig not in figures and ("SEM" in fig["caption"] or "modulus" in fig["caption"]):
+                fig["link"] = "https://www.ncbi.nlm.nih.gov" + image["src"]
+                # fig["caption"] = caption.get_text()
+                if fig not in figures and "SEM" in caption.get_text():
                     figures.append(fig)
         return figures
 
@@ -93,3 +93,6 @@ class PMC(BaseScraper):
 
     def get_title(self, soup):
         return soup.find("h1", {"class": "content-title"}).getText()
+
+    def get_support(self, soup):
+        pass

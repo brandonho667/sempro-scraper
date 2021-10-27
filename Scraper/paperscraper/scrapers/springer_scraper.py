@@ -38,3 +38,6 @@ class Springer(BaseScraper):
 
     def get_title(self, soup):
         return soup.find("meta", {"name": "citation_title"})['content']
+
+    def get_support(self, soup):
+        pass

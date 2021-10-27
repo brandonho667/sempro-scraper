@@ -33,8 +33,9 @@ class BaseScraper(ABC):
             # 'keywords': self.get_keywords(soup),
             'figures': self.get_figures(soup),
             # 'abstract': self.get_abstract(soup),
-            'body': self.get_body(soup),
+            # 'body': self.get_body(soup),
             'doi':self.get_doi(soup),
+            'support':self.get_support(soup),
             # 'pdf_url':self.get_pdf_url(soup)
         })
 
@@ -69,22 +70,7 @@ class BaseScraper(ABC):
     @abstractmethod
     def get_body(self, soup):
         """
-            Returns a OrderedDict of sections structured as
-                section1 : {
-                    p1 : contents,
-                    p2 : contents,
-                    ...
-                    pn : contents
-                },
-                section2 : {
-                    p1 : contents,
-                    p2 : contents,
-                    ...
-                    pn : contents
-                }
-
-        Paragraphs that do not belong to a section should be placed in a section named 'no_section'.
-        See the implementation in ScienceDirect.py for an example.
+            return mod values mentioned in body
         """
         pass
 
@@ -133,6 +119,13 @@ class BaseScraper(ABC):
     def get_keywords(self, soup):
         """
         Returns an array of keywords associated with a paper or None if non-existent
+        """
+        pass
+
+    @abstractmethod
+    def get_support(self, soup):
+        """
+        Returns supporting info
         """
         pass
 
