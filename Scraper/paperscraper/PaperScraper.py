@@ -23,7 +23,7 @@ class PaperScraper():
 
     """
 
-    def __init__(self, webdriver_path=None):
+    def __init__(self, driver):
         """Creates a PaperScraper object
 
         Initializes a PaperScraper that can scrape text and meta-data from scientific journals. Individual journal
@@ -34,15 +34,7 @@ class PaperScraper():
         :type webdriver_path: str.
 
         """
-        options = webdriver.ChromeOptions()
-        options.add_argument('headless')
-
-        webdriver_path = pkg_resources.resource_filename('paperscraper', 'webdrivers/chromedriver.exe')
-       
-        if ('webdriver_path' is not None):
-            self.webdriver_path = webdriver_path
-
-        self.driver = webdriver.Chrome(webdriver_path, options=options)
+        self.driver = driver
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.driver.quit()

@@ -185,20 +185,40 @@ class ACS(BaseScraper):
             fig_num = s.find("h2", {"class": "fig-label"})
             fig = {}
             caption = s.find("figcaption")
+            backup = s.find('img')
             image = s.find("a", {"title": "High Resolution Image"})
+            lnk = "https://pubs.acs.org"
+
+            if image and backup:
+                if requests.get(lnk+image['href']).status_code != 200:
+                    if requests.get(lnk+backup['src']).status_code != 200:
+                        continue
+                    else:
+                        lnk += backup['src']
+                else:
+                    lnk += image['href']
+            else:
+                continue
             if fig_num and caption and image and fig_num.getText() not in self.fig_nums:
                 self.fig_nums.add(fig_num.getText())
                 fig["num"] = fig_num.getText()
-                lnk = "https://pubs.acs.org" + image["href"]
                 # fig["caption"] = caption.getText()
                 fig["SEM"] = []
                 if "SEM" in caption.getText():
                     images_dir = os.path.join('sem/', doi)
                     if not os.path.exists(images_dir):
                         os.mkdir(images_dir)
-                    with open(os.path.join(images_dir, os.path.basename(lnk)), "wb") as f:
-                        f.write(requests.get(lnk).content)
-                    fig['link'] = '=HYPERLINK(\"'+images_dir+'\",\"img_folder\")'
+                    content = requests.get(lnk).content
+                    file_n = os.path.basename(lnk)
+                    file_split = os.path.splitext(file_n)
+                    if file_split[1] == '.gif':
+                        file_n = os.path.splitext(file_n)[0]+'.jpeg'
+                        im = Image.open(io.BytesIO(content))
+                        im.save(os.path.join(images_dir, file_n))
+                    else:
+                        with open(os.path.join(images_dir, file_n), "wb") as f:
+                            f.write(content)
+                    fig['link'] = '=HYPERLINK(\"'+os.path.join(images_dir, os.path.basename(lnk))+'\",\"img_folder\")'
                     SEM_dir = os.path.join(images_dir, 'SEM')
                     if not os.path.exists(SEM_dir):
                         os.mkdir(SEM_dir)
@@ -257,6 +277,10 @@ class ACS(BaseScraper):
         except:
             return None
         print("pdf_url: " + pdf_url)
+        file_n = os.path.basename(pdf_url)
+        file_split = os.path.splitext(file_n)
+        if file_split[1] != ".pdf":
+            return None
         s = requests.Session()    
         r = s.get(pdf_url, stream=True)
         cookies = dict(r.cookies)
@@ -275,7 +299,7 @@ class ACS(BaseScraper):
         supp_figures = []
         for i in range(len(pdf)):
             text = pdf[i]
-            print("Page %d text: %s" % (i, text))
+            # print("Page %d text: %s" % (i, text))
             # images = image_reader[i].getImageList()
             im = image_reader[i]
             doi = self.get_doi(soup).replace('/', '_')
@@ -294,7 +318,7 @@ class ACS(BaseScraper):
             captions = text.split("Figure ")
             for c in captions:
                 fig = {}
-                fig["link"] = '=HYPERLINK(\"'+images_dir+'\",\"img_folder\")'
+                fig["link"] = '=HYPERLINK(\"'+os.path.join(images_dir, im_name)+'\",\"sup_img\")'
                 if "SEM" in c:
                     fig["SEM"] = []
                     SEM_dir = os.path.join(images_dir, 'SEM')
@@ -303,10 +327,10 @@ class ACS(BaseScraper):
                     detect_sem(source=images_dir,imgsz=416,conf_thres=0.75)
                     
                     cap_sent = tk.sent_tokenize(c)
-                    print("tokenize: %s" % cap_sent)
+                    # print("tokenize: %s" % cap_sent)
                     fig["num"] = cap_sent.pop(0)
                     cap_sent = self.split_cap(cap_sent)
-                    print("split: %s" % cap_sent)
+                    # print("split: %s" % cap_sent)
                     if not cap_sent:
                         continue
 
@@ -321,12 +345,20 @@ class ACS(BaseScraper):
                             for el in gel:
                                 if el != "" and el[0] != "m" and not self.is_number(el):
                                     self.keygels.add(el)
-                elif any(m in c for m in modulus_key):
-                    fig['modulus'] = []
+                fig['modulus'] = []
+                if any(m in c for m in modulus_key):
+                    words = tk.word_tokenize(c)
+                    curr_gel = []
+                    modulus = []
+                    for w in words:
+                        for system in self.keygels:
+                            if system in w or w in system:
+                                curr_gel.append(w)
+                                break
                     for m in modulus_key:
                         if m in c:
-                            fig["modulus"].append(m)
-                
+                            modulus.append(m)
+                    fig['modulus'].append({"gel": ", ".join(curr_gel), "moduli": ", ".join(modulus)})
                 if fig:
                     supp_figures.append(fig)
 

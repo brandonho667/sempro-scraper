@@ -92,17 +92,17 @@ def detect(save_img=True, source="data/images", weights=[SEM_MODEL], imgsz=416, 
                         # plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
 
             # Print time (inference + NMS)
-            print(f'{s}Done. ({t2 - t1:.3f}s)')
+            # print(f'{s}Done. ({t2 - t1:.3f}s)')
 
             # Save results (image with detections)
             # if save_img:
             #     if dataset.mode == 'image':
             #         cv2.imwrite(save_path, im0)
 
-    if save_img:
-        print(f"Results saved to {save_dir}")
+    # if save_img:
+    #     print(f"Results saved to {save_dir}")
 
-    print(f'Done. ({time.time() - t0:.3f}s)')
+    # print(f'Done. ({time.time() - t0:.3f}s)')
 
 
 def detect_sem(save_img=True, source="data/images", weights=[SEM_MODEL], imgsz=416, conf_thres=0.25, iou_thres=0.45):

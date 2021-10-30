@@ -33,7 +33,7 @@ class BaseScraper(ABC):
             # 'keywords': self.get_keywords(soup),
             'figures': self.get_figures(soup),
             # 'abstract': self.get_abstract(soup),
-            # 'body': self.get_body(soup),
+            'body': self.get_body(soup),
             'doi':self.get_doi(soup),
             'support':self.get_support(soup),
             # 'pdf_url':self.get_pdf_url(soup)
