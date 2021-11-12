@@ -3,6 +3,7 @@ import urllib
 from pdf2image import convert_from_bytes
 # from PyPDF2.pdf import PdfFileReader
 # from PyPDF2.utils import PdfReadError
+
 from tika import parser
 # import pdfplumber
 from numpy.lib.type_check import imag
@@ -58,7 +59,10 @@ class ACS(BaseScraper):
         accept = ["~", "±", "to", "and", "Pa"]
         modulus_types = ["compressive", "young’s", "storage", "tensile", "elastic", "shear"]
         # print(self.fig_labels)
-        for section in soup.find("div", {"class":"article_content-left"}).find_all():
+        body = soup.find("div", {"class":"article_content-left"})
+        if not body:
+            return None
+        for section in body.find_all():
             if section.name == "div" and "class" in section.attrs.keys():
                 if "NLM_back" in section["class"]:
                     break
@@ -181,7 +185,10 @@ class ACS(BaseScraper):
     def get_figures(self, soup):
         figures = []
         doi = self.get_doi(soup).replace('/', '_')
-        for s in soup.find_all("figure", {"class": "article__inlineFigure"}):
+        fig_soup = soup.find_all("figure", {"class": "article__inlineFigure"})
+        if not fig_soup:
+            return None
+        for s in fig_soup:
             fig_num = s.find("h2", {"class": "fig-label"})
             fig = {}
             caption = s.find("figcaption")
@@ -202,23 +209,31 @@ class ACS(BaseScraper):
             if fig_num and caption and image and fig_num.getText() not in self.fig_nums:
                 self.fig_nums.add(fig_num.getText())
                 fig["num"] = fig_num.getText()
+                modulus_key = ["rheology", "modulus", "moduli", "compressive", "young’s", "storage", "tensile", "elastic", "shear"]
+
                 # fig["caption"] = caption.getText()
-                fig["SEM"] = []
+                if not caption.getText() or \
+                ("SEM" not in caption.getText() and not any(m in caption.getText() for m in modulus_key)):
+                    continue
+                images_dir = os.path.join('sem/', doi)
+                if not os.path.exists(images_dir):
+                    os.mkdir(images_dir)
+                content = requests.get(lnk).content
+                file_n = os.path.basename(lnk)
+                file_split = os.path.splitext(file_n)
+                if file_split[1] == '.gif':
+                    file_n = os.path.splitext(file_n)[0]+'.jpeg'
+                    im = Image.open(io.BytesIO(content))
+                    if im.mode != 'RGB':
+                        im = im.convert('RGB')
+                    im.save(os.path.join(images_dir, file_n))
+                else:
+                    with open(os.path.join(images_dir, file_n), "wb") as f:
+                        f.write(content)
+                fig['link'] = '=HYPERLINK(\"'+os.path.join(images_dir, os.path.basename(lnk))+'\",\"'+os.path.join(images_dir, os.path.basename(lnk))+'\")'
+                fig['folder'] = '=HYPERLINK(\"'+os.path.join(images_dir, "SEM")+'\",\"'+os.path.join(images_dir, "SEM")+'\")'
                 if "SEM" in caption.getText():
-                    images_dir = os.path.join('sem/', doi)
-                    if not os.path.exists(images_dir):
-                        os.mkdir(images_dir)
-                    content = requests.get(lnk).content
-                    file_n = os.path.basename(lnk)
-                    file_split = os.path.splitext(file_n)
-                    if file_split[1] == '.gif':
-                        file_n = os.path.splitext(file_n)[0]+'.jpeg'
-                        im = Image.open(io.BytesIO(content))
-                        im.save(os.path.join(images_dir, file_n))
-                    else:
-                        with open(os.path.join(images_dir, file_n), "wb") as f:
-                            f.write(content)
-                    fig['link'] = '=HYPERLINK(\"'+os.path.join(images_dir, os.path.basename(lnk))+'\",\"img_folder\")'
+                    fig["SEM"] = []
                     SEM_dir = os.path.join(images_dir, 'SEM')
                     if not os.path.exists(SEM_dir):
                         os.mkdir(SEM_dir)
@@ -226,14 +241,10 @@ class ACS(BaseScraper):
                     # This part is for actual acquisition:
                     
                     cap_sent = tk.sent_tokenize(caption.getText())
-                    
                     cap_sent = self.split_cap(cap_sent)
 
                     for label in cap_sent.keys():
                         gel = self.get_proper(cap_sent[label])
-                            
-                        # print(gel + ": " + label)
-
                         if gel != "" and label != "":
                             fig["SEM"].append({"fig_num": label, "gel": gel, "sentence":cap_sent[label]})
                             gel = gel.split(" ")
@@ -241,7 +252,20 @@ class ACS(BaseScraper):
                                 if el != "" and el[0] != "m" and not self.is_number(el):
                                     self.keygels.add(el)
                     
-                    # just get the image
+                if any(m in caption.getText() for m in modulus_key):
+                    words = tk.word_tokenize(caption.getText())
+                    curr_gel = []
+                    modulus = []
+                    for w in words:
+                        for system in self.keygels:
+                            if (system in w or w in system) and w != "" and w != " ":
+                                curr_gel.append(w)
+                                break
+                    for m in modulus_key:
+                        if m in caption.getText():
+                            modulus.append(m)
+                    fig['modulus'] = {"gel": ", ".join(curr_gel), "moduli": ", ".join(modulus), "sentence": caption.getText()}
+                if fig:
                     figures.append(fig)
 
         return figures
@@ -276,7 +300,7 @@ class ACS(BaseScraper):
                 soup.find("a", {"class": "suppl-anchor"})['href']
         except:
             return None
-        print("pdf_url: " + pdf_url)
+        print(" -- pdf_url: " + pdf_url)
         file_n = os.path.basename(pdf_url)
         file_split = os.path.splitext(file_n)
         if file_split[1] != ".pdf":
@@ -297,6 +321,8 @@ class ACS(BaseScraper):
             return
         image_reader = convert_from_bytes(r.content)
         supp_figures = []
+        modulus_key = ["rheology", "modulus", "moduli", "compressive", "young’s", "storage", "tensile", "elastic", "shear"]
+
         for i in range(len(pdf)):
             text = pdf[i]
             # print("Page %d text: %s" % (i, text))
@@ -304,12 +330,11 @@ class ACS(BaseScraper):
             im = image_reader[i]
             doi = self.get_doi(soup).replace('/', '_')
             # images_dir = os.path.join('sem/', doi)
-            modulus_key = ["rheology", "modulus", "moduli", "compressive", "young’s", "storage", "tensile", "elastic", "shear"]
             if not text or \
                 ("SEM" not in text and not any(m in text for m in modulus_key)):
                 continue
             doi = self.get_doi(soup).replace('/', '_')
-            images_dir = "sem/%s/supp" % doi
+            images_dir = "sem/%s" % doi
             if not os.path.exists(images_dir):
                 os.makedirs(images_dir)
             im_name = "supp_%d.jpg" % i
@@ -318,7 +343,8 @@ class ACS(BaseScraper):
             captions = text.split("Figure ")
             for c in captions:
                 fig = {}
-                fig["link"] = '=HYPERLINK(\"'+os.path.join(images_dir, im_name)+'\",\"sup_img\")'
+                fig["link"] = '=HYPERLINK(\"'+os.path.join(images_dir, im_name)+'\",\"'+os.path.join(images_dir, im_name)+'\")'
+                fig["folder"] = '=HYPERLINK(\"'+os.path.join(images_dir, "SEM")+'\",\"'+os.path.join(images_dir, "SEM")+'\")'
                 if "SEM" in c:
                     fig["SEM"] = []
                     SEM_dir = os.path.join(images_dir, 'SEM')
@@ -340,7 +366,7 @@ class ACS(BaseScraper):
                         # print(gel + ": " + label)
 
                         if gel != "" and label != "":
-                            fig["SEM"].append({"fig_num": label, "gel": gel, "sentence":cap_sent[label]})
+                            fig["SEM"].append({"fig_num": label, "gel": gel, "sentence":cap_sent[label].replace("\n", " ")})
                             gel = gel.split(" ")
                             for el in gel:
                                 if el != "" and el[0] != "m" and not self.is_number(el):
@@ -352,13 +378,13 @@ class ACS(BaseScraper):
                     modulus = []
                     for w in words:
                         for system in self.keygels:
-                            if system in w or w in system:
+                            if (system in w or w in system) and w != "" and w != " ":
                                 curr_gel.append(w)
                                 break
                     for m in modulus_key:
                         if m in c:
                             modulus.append(m)
-                    fig['modulus'].append({"gel": ", ".join(curr_gel), "moduli": ", ".join(modulus)})
+                    fig['modulus'].append({"gel": ", ".join(curr_gel), "moduli": ", ".join(modulus), "sentence": c.replace("\n", " ")})
                 if fig:
                     supp_figures.append(fig)
 
