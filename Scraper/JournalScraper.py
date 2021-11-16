@@ -137,7 +137,8 @@ class JournalScraper:
             time.sleep(random.randint(1,5))
             count += 1
             if count%200 == 0:
-                print("completed 200 scrapes, taking a break so i don't get caught by acs") 
+                # print("completed 200 scrapes, taking a break so i don't get caught by acs") 
+                time.sleep(300)
                 break
 
         # return journal_data
